@@ -153,3 +153,7 @@ func (s *Subscriber) Unsubscribe(sp *Subscription) {
 
 	go sp.close()
 }
+
+func (s *Subscriber) Publish(topic string, message []byte) error {
+	return s.client.Publish(path.Join(s.channel, topic), string(message)).Err()
+}

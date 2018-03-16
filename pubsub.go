@@ -20,3 +20,7 @@ func Subscribe(pattern string) (*Subscription, error) {
 func Unsubscribe(sp *Subscription) {
 	subscriber.Unsubscribe(sp)
 }
+
+func Publish(topic string, message []byte) error {
+	return subscriber.Publish(topic, message)
+}
