@@ -5,10 +5,17 @@ import (
 	"time"
 )
 
+type Message struct {
+	Topic   string
+	Pattern string
+	Matches []string
+	Payload []byte
+}
+
 type Subscription struct {
 	id        string
 	pattern   string
-	messages  chan []byte
+	messages  chan *Message
 	closed    bool
 	mux       sync.RWMutex
 	closeOnce sync.Once
@@ -24,7 +31,7 @@ func (s *Subscription) close() {
 	})
 }
 
-func (s *Subscription) cast(message []byte, timeout time.Duration, logger Logger) {
+func (s *Subscription) cast(topic string, matches []string, payload []byte, timeout time.Duration, logger Logger) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
@@ -33,10 +40,15 @@ func (s *Subscription) cast(message []byte, timeout time.Duration, logger Logger
 	} else {
 		select {
 		case <-time.After(timeout):
-			logger.Crit("pubsub: timeout sending message to subscription on pattern %s\n%s", s.pattern, message)
-		case s.messages <- message:
+			logger.Crit("pubsub: timeout sending message to subscription on pattern %s\n%s", s.pattern, payload)
+		case s.messages <- &Message{
+			Topic:   topic,
+			Pattern: s.pattern,
+			Matches: matches,
+			Payload: payload,
+		}:
 		}
 	}
 }
 
-func (s *Subscription) Messages() <-chan []byte { return s.messages }
+func (s *Subscription) Messages() <-chan *Message { return s.messages }

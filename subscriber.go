@@ -69,14 +69,14 @@ func (s *Subscriber) listen() {
 	}
 }
 
-func (s *Subscriber) cast(topic string, message []byte) {
+func (s *Subscriber) cast(topic string, payload []byte) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
 	for rexStr, rex := range s.patterns {
-		if rex.MatchString(topic) {
+		if matches := rex.FindStringSubmatch(topic); len(matches) > 0 {
 			for _, sp := range s.subscriptions[rexStr] {
-				go sp.cast(message, s.timeout, s.logger)
+				go sp.cast(topic, matches, payload, s.timeout, s.logger)
 			}
 		}
 	}
@@ -118,7 +118,7 @@ func (s *Subscriber) Subscribe(pattern string) (*Subscription, error) {
 	sp := &Subscription{
 		id:       uuid.NewV4().String(),
 		pattern:  pattern,
-		messages: make(chan []byte, math.MaxInt16),
+		messages: make(chan *Message, math.MaxInt16),
 	}
 
 	s.mux.Lock()
